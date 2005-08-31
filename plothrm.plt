@@ -12,20 +12,20 @@ delim: space
 showresults: yes
 
 #proc processdata
-fields: 6
+fields: 1
 action: breaks
 #endproc
 
 #proc processdata
 action: stats
-fields: 5
+fields: 6
 #endproc
 #set total_distance = @MAX
 
 #proc areadef
 areaname: 2hi
 yrange: 80 200
-xautorange: datafield=1 nearest=60
+xautorange: datafield=2 nearest=60
 title: @file
 titledetails: size=9 align=c style=R
 #if @total_distance > 0
@@ -35,14 +35,14 @@ title2details: size=8 align=c style=R adjust=0,-0.15
 #saveas area
 
 #proc lineplot
-xfield: 1
-yfield: 2
+xfield: 2
+yfield: 3
 linedetails: width=1 color=skyblue
 clip: yes
 
 #proc processdata
 action: stats
-fields: 2
+fields: 3
 #endproc
 
 #proc line
@@ -77,14 +77,14 @@ labeldetails: adjust=0.1,0 color=skyblue style=B
 yrange: 0 20
 
 #proc lineplot
-xfield: 1
-yfield: 3
+xfield: 2
+yfield: 4
 linedetails: width=1 color=green
 clip: yes
 
 #proc processdata
 action: stats
-fields: 3
+fields: 4
 #endproc
 
 #proc line
@@ -110,7 +110,7 @@ location: max
 original: yes
 
 #proc processdata
-fields: 6
+fields: 1
 action: breaks
 #endproc
 
@@ -125,10 +125,38 @@ xrange: @XMIN @XMAX
 #endproc
 
 #proc bars
-locfield: 1
-lenfield: 4
+locfield: 2
+lenfield: 5
 thinbarline: width=0.5 color=lavender style=2
-labelfield: 2
+labelfield: 3
 labelpos: min+0.2
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
 #endif
+
+// 
+// now plot the hrzones
+//
+#proc usedata
+original: yes
+
+#proc processdata
+fields: 1
+action: breaks
+#endproc
+
+#proc areadef
+#clone area
+yrange: 0 100
+xrange: @XMIN @XMAX
+#endproc
+
+#proc bars
+lenfield: 1
+stackfields: *
+color: red
+#saveas B
+
+#proc bars
+#clone B
+lenfield: 2
+color: blue

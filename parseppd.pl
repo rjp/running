@@ -1,45 +1,70 @@
 use Data::Dumper;
 
-my $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington/2005";
+my $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
 my $date = shift;
 my $exe  = shift || 1;
-my $file = "$dir/$date.pdd";
+my $year = substr($date, 0, 4);
+my $ppd = "$dir/rob partington.ppd";
+my $pdd = "$dir/$year/$date.pdd";
 
-open FILE, "$file" or die "can't open $file: $!\n";
-my @data = map {chomp;s/\r//g;$_} <FILE>;
-close FILE;
-
-my %cursec;
-foreach my $line (@data) {
-    next if $line =~ /^\s*$/;
-    if ($line =~ /^\[(.*?)\]/) {
-        $cursec = $1;
-    } else {
-        push @{$chunks{$cursec}}, $line;
+sub parse_chunks {
+    my (%chunks, $cursec);
+    foreach my $line (@_) {
+	    next if $line =~ /^\s*$/;
+	    if ($line =~ /^\[(.*?)\]/) {
+	        $cursec = $1;
+	    } else {
+	        push @{$chunks{$cursec}}, $line;
+	    }
     }
+    return \%chunks;
 }
-print Dumper(\%chunks);
+open FILE, "$ppd" or die "can't open $ppd: $!\n";
+my @person_file = map {chomp;s/\r//g;$_} <FILE>;
+close FILE;
+my $person = parse_chunks(@person_file);
+open FILE, "$pdd" or die "can't open $pdd: $!\n";
+my @day_file = map {chomp;s/\r//g;$_} <FILE>;
+close FILE;
+my $chunks = parse_chunks(@day_file);
 
-if (!defined($chunks{"ExerciseInfo$exe"})) {
+if (!defined($chunks->{"ExerciseInfo$exe"})) {
     die "No exercise data for #$exe";
 }
 
+my $sports = $person->{'PersonSports'};
+my @lines = @$sports; splice(@lines, 0, 3);
+my %sport_info;
+while (@lines) {
+    my ($t, $f, $long_name, $short_name) = splice(@lines, 0, 4);
+    my ($type, @junk) = split(' ', $t);
+    $sport_info{$type} = $long_name;
+}
+
+print Dumper(\%sport_info);
+
 # parse the exercise information
-my $array = $chunks{"ExerciseInfo$exe"};
-my ($x, $x, $x, $distance, $x, $time) = split(' ', $array->[1]);
+my $array = $chunks->{"ExerciseInfo$exe"};
+print Dumper(\$array);
+my ($x, $x, $x, $distance, $x, $exetime) = split(' ', $array->[1]);
 my ($type, $x, $x, $x, $x, $calories) = split(' ', $array->[2]);
 my @hrzones = split(' ', $array->[5]);
 my ($avBpm, $mxBpm, $avSpd, $mxSpd, @junk) = split(' ', $array->[9]);
 my ($avAlt, $mxAlt, @junk) = split(' ', $array->[9]);
 my $hrmfile = $array->[-1];
 
-print "type=$type calories=$calories HRM=$hrmfile distance=$distance time=$time\n";
-exit;
+open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
+my @data = <FILE>;
+close FILE;
+
+print "type=$sport_info{$type} ($type) calories=$calories HRM=$hrmfile distance=$distance time=$time\n";
 my @hrdata = grep {/\[HRData\]/..1} @data;    shift @hrdata;
 my @params = grep {/\[Params\]/../^$/} @data; shift @params;
 
 my %paramlist;
 foreach my $param (@params) {
+    chomp $param;
+    $param =~ s/\r//g;
     my ($key, $value) = split(/=/, $param, 2);
     $paramlist{$key} = $value;
 }
@@ -47,10 +72,8 @@ foreach my $param (@params) {
 my ($distance, $time, $total, $prev, $prevtime) = (0)x5;
 foreach my $line (@hrdata) {
     my ($hr, $speed, @junk) = split(/\t/, $line);
-    $time = $time + $paramlist{'Interval'};
     $speed = $speed / 10;
     my $distance = (1000*$speed)*$paramlist{'Interval'}/3600;
-    print "$time $hr $speed $distance $total HRSPEED\r\n";
     if (defined($speed)) { 
         $total = $total + $distance;
         if (int($total/500) != int($prev/500)) {
@@ -64,10 +87,14 @@ foreach my $line (@hrdata) {
         }
         $prev = $total;
     }
+    print "HRSPEED $time $hr $speed $distance $total\n";
+    $time = $time + $paramlist{'Interval'};
 }
-my $fd = sprintf("%.1fkm\\n%dm%.1f", $total/1000, int($time/60), $time%60);
+my $fd = sprintf("%.1fkm\\n%dm%.1f", $total/1000, int($exetime/60), $exetime%60);
 
 foreach my $i (@distances) {
-    print join(' ', @$i, '100',$prev,'DISTANCE'),"\r\n";
+    print join(' ', 'DISTANCE', @$i, '100',$prev),"\n";
 }
-print join(' ', $paramlist{'Length'}, $fd, $total/1000,'100',100,'DISTANCE'), "\n";
+print join(' ', 'DISTANCE', $exetime, $fd, $total/1000,'100',100), "\n";
+
+print join(' ', 'HRZONE', @hrzones), "\n";
