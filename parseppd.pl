@@ -41,11 +41,8 @@ while (@lines) {
     $sport_info{$type} = $long_name;
 }
 
-print Dumper(\%sport_info);
-
 # parse the exercise information
 my $array = $chunks->{"ExerciseInfo$exe"};
-print Dumper(\$array);
 my ($x, $x, $x, $distance, $x, $exetime) = split(' ', $array->[1]);
 my ($type, $x, $x, $x, $x, $calories) = split(' ', $array->[2]);
 my @hrzones = split(' ', $array->[5]);
@@ -53,11 +50,14 @@ my ($avBpm, $mxBpm, $avSpd, $mxSpd, @junk) = split(' ', $array->[9]);
 my ($avAlt, $mxAlt, @junk) = split(' ', $array->[9]);
 my $hrmfile = $array->[-1];
 
+(my $escaped = $sport_info{$type}) =~ s/ /\\ /g;
+print "$escaped $exetime $distance\n";
+
 open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
 my @data = <FILE>;
 close FILE;
 
-print "type=$sport_info{$type} ($type) calories=$calories HRM=$hrmfile distance=$distance time=$time\n";
+# print "type=$sport_info{$type} ($type) calories=$calories HRM=$hrmfile distance=$distance time=$time\n";
 my @hrdata = grep {/\[HRData\]/..1} @data;    shift @hrdata;
 my @params = grep {/\[Params\]/../^$/} @data; shift @params;
 
@@ -96,5 +96,4 @@ foreach my $i (@distances) {
     print join(' ', 'DISTANCE', @$i, '100',$prev),"\n";
 }
 print join(' ', 'DISTANCE', $exetime, $fd, $total/1000,'100',100), "\n";
-
-print join(' ', 'HRZONE', @hrzones), "\n";
+print join(' ', 'HRZONE', @hrzones, 0), "\n";
