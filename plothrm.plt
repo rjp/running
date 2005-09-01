@@ -1,15 +1,23 @@
-#set file = $getenv(RUNFILE)
-#write stdout
-file=@file
-#endwrite
-
 #proc page
 landscape: yes
 
 #proc getdata
-command: perl /home/dixons/parseppd.pl @file
+command: perl parseppd.pl 20050830 2
 delim: space
+nfields: 8
 showresults: yes
+
+#proc processdata
+fields: 1
+action: breaks
+#endproc
+#set type = @BREAKFIELD1
+#write stdout
+type=@type
+#endwrite
+
+#proc usedata
+original: yes
 
 #proc processdata
 fields: 1
@@ -26,7 +34,7 @@ fields: 6
 areaname: 2hi
 yrange: 80 200
 xautorange: datafield=2 nearest=60
-title: @file
+title: @type
 titledetails: size=9 align=c style=R
 #if @total_distance > 0
 title2: distance: @total_distance
@@ -114,10 +122,6 @@ fields: 1
 action: breaks
 #endproc
 
-#write stdout
-@XMIN - @XMAX
-#endwrite
-
 #proc areadef
 #clone area
 yrange: 0 100
@@ -151,12 +155,31 @@ xrange: @XMIN @XMAX
 #endproc
 
 #proc bars
-lenfield: 1
+horizontalbars: yes
+outline: no
+lenfield: 2
+locfield: 8
 stackfields: *
+barwidth: 0.06
 color: red
 #saveas B
 
 #proc bars
 #clone B
-lenfield: 2
-color: blue
+lenfield: 3
+color: yelloworange
+
+#proc bars
+#clone B
+lenfield: 4
+color: drabgreen
+
+#proc bars
+#clone B
+lenfield: 5
+color: gray(0.6)
+
+#proc bars
+#clone B
+lenfield: 6
+color: skyblue
