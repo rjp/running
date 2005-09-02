@@ -3,18 +3,28 @@ landscape: yes
 
 #proc getdata
 # command: perl parseppd.pl 20050830 2
-pathname: testfile
+pathname: testfile2
 delim: space
 nfields: 8
 showresults: yes
 
 #proc processdata
-fields: 1
+fields: 1 2 3
 action: breaks
 #endproc
 #set type = @BREAKFIELD1
+#set seconds = @BREAKFIELD2
+#set distance = @BREAKFIELD3
+#set tmint = $arith(@seconds/60)
+#set tmin = $formatfloat(@tmint, "%.0f")
+#set tsec = $arith(@seconds%60)
+#set t0 = $strcat(@tmin, "m")
+#set nicetime = $strcat(@t0, @tsec)
+#set tkm = $arith(@distance/1000)
+#set rkm = $formatfloat(@tkm, "%.1f")
+#set dkm = $strcat(@rkm, "km")
 #write stdout
-type=@type
+type=@type time=@nicetime distance=@dkm
 #endwrite
 
 #proc usedata
@@ -35,18 +45,20 @@ fields: 6
 areaname: 2hi
 yrange: 80 200
 xautorange: datafield=2 nearest=60
-title: @type
 titledetails: size=9 align=c style=R
 #if @total_distance > 0
-title2: distance: @total_distance
-title2details: size=8 align=c style=R adjust=0,-0.15
+title: @type (@dkm, @nicetime)
+#else
+title: @type (@nicetime)
 #endif
+// title2: @dkm 
+// title2details: size=8 align=c style=R adjust=0,-0.15
 #saveas area
 
 #proc lineplot
 xfield: 2
 yfield: 3
-linedetails: width=1 color=skyblue
+linedetails: width=1 color=oceanblue
 clip: yes
 
 #proc processdata
@@ -55,14 +67,14 @@ fields: 3
 #endproc
 
 #proc line
-linedetails: width=0.5 style=1 color=skyblue
+linedetails: width=0.5 style=1 color=oceanblue
 points: min @MEAN(s) max @MEAN(s)
 
 #set nice = $formatfloat(@MEAN, "%.0f")
 #set max = $formatfloat(@MAX, "%.0f")
 #proc annotate
 location: min+0.4 max-0.1
-textdetails: color=skyblue size=8 
+textdetails: color=oceanblue size=8 
 text: @nice/@max bpm
 
 #proc xaxis
@@ -71,14 +83,15 @@ stubcull: yes
 stubreverse: yes
 stubdetails: size=6
 stubmult: 0.0166666666
-label: minutes
+// label: minutes
+labeldetails: size=6 adjust=0,0.2
 
 #proc yaxis
 stubs: inc 20
 stubcull: yes
 stubdetails: size=6 adjust=0.05,0
 label: hr/bpm
-labeldetails: adjust=0.1,0 color=skyblue style=B
+labeldetails: adjust=0.1,0 color=oceanblue style=B
 
 #if @total_distance > 0
 #proc areadef
@@ -136,6 +149,7 @@ thinbarline: width=0.5 color=lavender style=2
 labelfield: 3
 labelpos: min+0.2
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
+
 #endif
 
 // 
@@ -159,7 +173,6 @@ xrange: @XMIN @XMAX
 horizontalbars: yes
 outline: no
 locfield: 2
-stackfields: *
 barwidth: 0.06
 exactcolorfield: 5
 segmentfields: 3 4 

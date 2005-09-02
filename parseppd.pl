@@ -1,6 +1,7 @@
 use Data::Dumper;
 
-my $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
+#my $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
+my $dir = "/home/rjp/data/rjp_polar/rob partington";
 my $date = shift;
 my $exe  = shift || 1;
 my $year = substr($date, 0, 4);
@@ -50,7 +51,7 @@ my ($avBpm, $mxBpm, $avSpd, $mxSpd, @junk) = split(' ', $array->[9]);
 my ($avAlt, $mxAlt, @junk) = split(' ', $array->[9]);
 my $hrmfile = $array->[-1];
 
-(my $escaped = $sport_info{$type}) =~ s/ /\\ /g;
+(my $escaped = $sport_info{$type}) =~ s/ /./g;
 print "$escaped $exetime $distance\n";
 
 open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
@@ -69,9 +70,21 @@ foreach my $param (@params) {
     $paramlist{$key} = $value;
 }
 
-my ($distance, $time, $total, $prev, $prevtime) = (0)x5;
+my ($distance, $time, $total, $prev, $prevtime, $prevzonetime) = (0)x6;
+my ($prev_hrzone, @zones, $hrzone);
+
 foreach my $line (@hrdata) {
+    chomp $line;
+    $line =~ s/\r//g;
     my ($hr, $speed, @junk) = split(/\t/, $line);
+
+    $hrzone = calc_zone($hr);
+    if ($hrzone ne $prev_hrzone) {
+        push @zones, ['HRZONE', 0, $prevzonetime, $time, $prev_hrzone, $hr];
+        $prev_hrzone = $hrzone;
+        $prevzonetime = $time;
+    }
+
     $speed = $speed / 10;
     my $distance = (1000*$speed)*$paramlist{'Interval'}/3600;
     if (defined($speed)) { 
@@ -90,10 +103,29 @@ foreach my $line (@hrdata) {
     print "HRSPEED $time $hr $speed $distance $total\n";
     $time = $time + $paramlist{'Interval'};
 }
-my $fd = sprintf("%.1fkm\\n%dm%.1f", $total/1000, int($exetime/60), $exetime%60);
+if ($prevzonetime == 0) { $prev_hrzone = $hrzone; }
+push @zones, ['HRZONE', 0, $prevzonetime, $time, $prev_hrzone];
+
+my $lastgap = $exetime - $prevtime;
+my $fd = sprintf("%.1fkm\\n%.0fs", $total/1000, $lastgap);
 
 foreach my $i (@distances) {
     print join(' ', 'DISTANCE', @$i, '100',$prev),"\n";
 }
-print join(' ', 'DISTANCE', $exetime, $fd, $total/1000,'100',100), "\n";
-print join(' ', 'HRZONE', @hrzones, 0), "\n";
+if ($total > 0 ) {
+    print join(' ', 'DISTANCE', $exetime, $fd, $total/1000,'100',100), "\n";
+}
+
+foreach my $i (@zones) {
+    print join(' ', @$i),"\n";
+}
+
+sub calc_zone {
+    my $hr = shift;
+    return 'red' if ($hr >= 162); # HARDCODED EVIL
+    return 'yelloworange' if ($hr >= 144); 
+    return 'yellowgreen' if ($hr >= 126); 
+    return 'lavender' if ($hr >= 108); 
+    return 'skyblue' if ($hr >= 90);
+    return 'gray(.6)';
+}
