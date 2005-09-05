@@ -2,7 +2,7 @@
 landscape: yes
 
 #proc getdata
-# command: perl parseppd.pl 20050830 2
+command: perl parseppd.pl @date @exe
 pathname: testfile
 delim: space
 nfields: 8
@@ -113,6 +113,20 @@ action: breaks
 #write stdout
 113 @BREAKFIELD1 TEMP & PACE
 #endwrite
+
+#proc areadef
+#clone area
+yrange: 0 80
+#endproc
+
+#proc lineplot
+xfield: 2
+yfield: 3
+linedetails: width=1 color=purple
+clip: yes
+ptlabelfield: 3
+ptlabeldetails: size=6 adjust=0,0.07
+pointsymbol: shape=square style=outline fillcolor=purple linecolor=purple
 
 #proc areadef
 #clone area

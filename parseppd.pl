@@ -7,9 +7,18 @@
 # 05HRSPEED          heart rate and speed
 
 use Data::Dumper;
+my $DATA = 0, 
+   $DISTANCE = 2, 
+   $HRZONE = 4, 
+   $INTMARK = 3, 
+   $INTERVAL = 5, 
+   $HRSPEED = 1;
 
-my $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
-#my $dir = "/home/rjp/data/rjp_polar/rob partington";
+if ($^O eq "MSWin32") {
+    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
+} else {
+    our $dir = "/home/rjp/data/rjp_polar/rob partington";
+}
 my $date = shift;
 my $exe  = shift || 1;
 my $year = substr($date, 0, 4);
@@ -61,15 +70,21 @@ my $hrmfile = $array->[-1];
 
 my $xrange = 60*(int($exetime/60)+1);
 
-(my $escaped = $sport_info{$type}) =~ s/ /./g;
-# TODO report the existence of altitude, intervals, hrzones here
-
-output(0, "DATA $escaped $exetime $distance $xrange");
-
 open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
 my @data = map {chomp;s/\r//g;$_} <FILE>;
 close FILE;
 my $hrmchunks = parse_chunks(\@data);
+
+my $escaped = $sport_info{$type};
+if ($hrmchunks->{'Note'}) { 
+    $escaped = $hrmchunks->{'Note'}->[0];
+}
+$escaped =~ s/^\s*(.*?)\s*$/$1/;
+$escaped =~ s/\s+/./g;
+
+# TODO report the existence of altitude, intervals, hrzones here
+
+output($DATA, "DATA $escaped $exetime $distance $xrange");
 
 # print "type=$sport_info{$type} ($type) calories=$calories HRM=$hrmfile distance=$distance time=$time\n";
 my @hrdata = grep {/\[HRData\]/..1} @data;    shift @hrdata;
@@ -94,7 +109,7 @@ foreach my $line (@hrdata) {
     $hrzone = calc_zone($hr);
     if ($hrzone ne $prev_hrzone) {
         if ($time > $prevzonetime) {
-            push @zones, ['HRZONE', 20, $prevzonetime, $time, $prev_hrzone, $hr];
+            push @zones, ['HRZONE', 5, $prevzonetime, $time, $prev_hrzone, $hr];
         }
         $prev_hrzone = $hrzone;
         $prevzonetime = $time;
@@ -115,20 +130,20 @@ foreach my $line (@hrdata) {
         }
         $prev = $total;
     }
-    output(5, "HRSPEED $time $hr $speed $distance $total");
+    output($HRSPEED, "HRSPEED $time $hr $speed $distance $total");
     $time = $time + $paramlist{'Interval'};
 }
 if ($prevzonetime == 0) { $prev_hrzone = $hrzone; }
-push @zones, ['HRZONE', 20, $prevzonetime, $time, $prev_hrzone];
+push @zones, ['HRZONE', 5, $prevzonetime, $time, $prev_hrzone];
 
 my $lastgap = $exetime - $prevtime;
 my $fd = sprintf("%.1fkm\\n%.0fs", $total/1000, $lastgap);
 
 foreach my $i (@distances) {
-    output(1, join(' ', 'DISTANCE', @$i, '100',$prev));
+    output($DISTANCE, join(' ', 'DISTANCE', @$i, '100',$prev));
 }
 if ($total > 0 ) {
-    output(1, join(' ', 'DISTANCE', $exetime, '.', $total/1000,'100',100));
+    output($DISTANCE, join(' ', 'DISTANCE', $exetime, '.', $total/1000,'100',100));
 }
 # print join(' ', '02HRZONE', @hrzones, 0), "\n";
 
@@ -148,7 +163,7 @@ if (defined($hrmchunks->{'IntTimes'})) {
         if ($spInst > 0) { 
             my $pace =1000/((($spInst/10)*1000)/3600);
             my $nt = sprintf("%d:%02d", int($pace/60), $pace%60);
-            output(3, join(' ', 'INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt));
+            output($INTMARK, join(' ', 'INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt));
             if ($timer == 1) {
                 push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$timer]];
                 push @intervals, ['INTERVAL', 15, $seconds, $seconds+$tRec, 'yellowgreen'];
@@ -159,7 +174,7 @@ if (defined($hrmchunks->{'IntTimes'})) {
             }
         }
     }
-    print_ssv_lines(4, \@intervals);
+    print_ssv_lines($INTERVAL, \@intervals);
 }
 sub print_ssv_lines {
     my $level = shift;
@@ -170,7 +185,7 @@ sub print_ssv_lines {
 }
 
 foreach my $i (@zones) {
-    output(2, join(' ', @$i));
+    output($HRZONE, join(' ', @$i));
 }
 
 output_all();
