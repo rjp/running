@@ -353,13 +353,32 @@ fields: 1
 action: breaks
 #endproc
 
-#proc bars
-horizontalbars: yes
-outline: no
-locfield: 2
-barwidth: 0.05
-exactcolorfield: 5
-segmentfields: 3 4 
+#set row = 1
+#loop
+    #set z = $dataitem(@row, 1)
+    #if @z <> 10NOTCH
+        #break
+    #endif
+    #set x = $dataitem(@row, 3)
+    #set c = $dataitem(@row, 5)
+
+    #if @c == black
+		#proc line
+		linedetails: color=@c width=0.5
+		points: @x(s) 4.02 @x(s) 4.12
+
+		#endproc
+    #endif
+    #set row = $arith(@row+1)
+#endloop
+
+// #proc bars
+// horizontalbars: yes
+// outline: no
+// locfield: 2
+// barwidth: 0.05
+// exactcolorfield: 5
+// segmentfields: 3 4 
 #endif
 
 #proc annotate
@@ -372,3 +391,8 @@ text: INT
 #proc legend
 location: min+0.2 3.9
 format: singleline
+
+#proc annotate
+location: 10 1
+textdetails: color=white size=2
+text: hidden
