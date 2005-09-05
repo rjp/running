@@ -33,7 +33,7 @@ type=@type time=@nicetime distance=@dkm xrange=0 @xrange (@xnear)
 #endwrite
 
 #proc areadef
-areaname: 2hi
+rectangle: 1 4.5 10 7
 // heartrate
 yrange: 0 190
 xrange: 0 @xrange
@@ -43,16 +43,12 @@ xrange: 0 @xrange
 #proc areadef
 #clone area
 titledetails: size=9 align=c style=R
-#if @total_distance > 0
+#if @plot_distance > 0
 title: @type (@dkm, @nicetime)
 #else
 title: @type (@nicetime)
 #endif
 #endproc
-
-#write stdout
-2hi A=@AREALEFT,@AREABOTTOM -> @AREARIGHT,@AREATOP
-#endwrite
 
 ///
 /// heart rate and speed
@@ -65,11 +61,10 @@ fields: 1
 action: breaks
 #endproc
 
-#write stdout
-63 @BREAKFIELD1 HRSPEED
-#endwrite
-
 #set total_distance = @distance
+
+/// always plot heart rate because we can't
+/// tell if it's actually there or not.
 
 #proc areadef
 #clone area
@@ -99,6 +94,13 @@ location: min+0.4 max+0.1
 textdetails: color=oceanblue size=8 
 text: @nice/@max bpm
 
+#proc yaxis
+stubs: inc 20
+stubcull: yes
+stubdetails: size=6 adjust=0.05,0
+label: hr/bpm
+labeldetails: adjust=0.1,0 color=oceanblue style=B
+
 #proc xaxis
 stubs: inc 60
 stubcull: yes
@@ -108,13 +110,7 @@ stubmult: 0.0166666666
 // label: minutes
 labeldetails: size=6 adjust=0,0.2
 
-#proc yaxis
-stubs: inc 20
-stubcull: yes
-stubdetails: size=6 adjust=0.05,0
-label: hr/bpm
-labeldetails: adjust=0.1,0 color=oceanblue style=B
-
+#if @plot_speed > 0
 #proc areadef
 #clone area
 yrange: 0 20
@@ -152,7 +148,6 @@ location: max
 /// 
 /// 500m markers 
 /// 
-#if @distance > 0 
 #proc usedata
 original: yes
 
@@ -174,8 +169,24 @@ labelfield: 3
 labelpos: min+0.2
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
 
-#endif
+#if @plot_altitude > 0
+#proc areadef
+rectangle: 1 1 10 3.5
+xrange: 0 @xrange
+yrange: 0 100
+#endproc
 
+#proc bars
+locfield: 2
+lenfield: 5
+thinbarline: width=0.5 color=lavender style=2
+labelfield: 3
+labelpos: min+0.2
+labeldetails: size=6 color=lightpurple align=R adjust=-0.05
+#endif /// plot_altitude km marks
+#endif /// plot_speed
+
+#if @plot_altitude > 0
 ///
 /// interval temperature and pace
 ///
@@ -193,13 +204,9 @@ action: breaks
 
 #proc areadef
 #clone area
-areaname: 2lo
+rectangle: 1 1 10 3.5
 yrange: 0 80
 #endproc
-
-#write stdout
-2lo A=@AREALEFT,@AREABOTTOM -> @AREARIGHT,@AREATOP
-#endwrite
 
 #proc lineplot
 xfield: 2
@@ -213,7 +220,7 @@ legendlabel: alt (m)
 
 #proc areadef
 #clone area
-areaname: 2lo
+rectangle: 1 1 10 3.5
 yrange: 0 35
 #endproc
 
@@ -227,12 +234,13 @@ ptlabeldetails: size=6 adjust=0,0.07
 pointsymbol: shape=square style=outline fillcolor=yelloworange linecolor=yelloworange radius=0.03
 legendlabel: temp (degC)
 
+#if @plot_int_pace > 0
 ///
 /// plot pace ///
 ///
 #proc areadef
 #clone area
-areaname: 2lo
+rectangle: 1 1 10 3.5
 yrange: 180 750
 #endproc
 
@@ -245,8 +253,11 @@ ptlabelfield: 6
 ptlabeldetails: size=6 adjust=0,0.07
 pointsymbol: shape=square style=outline fillcolor=powderblue2 radius=0.03
 legendlabel: pace (min/km)
+#endif
 
 #proc yaxis
+stubhide: yes
+tics: none
 stubcull: yes
 
 #proc xaxis
@@ -261,6 +272,13 @@ labeldetails: size=6 adjust=0,0.2
 #proc legend
 location: min+.20 max+.2
 format: singleline
+
+#endif
+
+#if @plot_hrzones > 0
+#write stdout
+plotting hrzones
+#endwrite
 
 ///  
 /// heart rate zones
@@ -294,7 +312,9 @@ segmentfields: 3 4
 location: min-0.1 3.95
 textdetails: size=8 align=R
 text: HRZ
+#endif
 
+#if @plot_intervals > 0
 /// 
 /// intervals
 /// 
@@ -323,6 +343,24 @@ locfield: 2
 barwidth: 0.1
 exactcolorfield: 5
 segmentfields: 3 4 
+
+#if @plot_notches > 0
+#proc usedata
+original: yes
+
+#proc processdata
+fields: 1
+action: breaks
+#endproc
+
+#proc bars
+horizontalbars: yes
+outline: no
+locfield: 2
+barwidth: 0.05
+exactcolorfield: 5
+segmentfields: 3 4 
+#endif
 
 #proc annotate
 location: min-0.1 4.08

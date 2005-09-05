@@ -12,7 +12,8 @@ my $DATA = 0,
    $HRZONE = 4, 
    $INTMARK = 3, 
    $INTERVAL = 5, 
-   $HRSPEED = 1;
+   $HRSPEED = 1,
+   $NOTCHES = 10;
 
 if ($^O eq "MSWin32") {
     our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
@@ -84,19 +85,36 @@ $escaped =~ s/\s+/./g;
 
 # TODO report the existence of altitude, intervals, hrzones here
 
-output($DATA, "DATA $escaped $exetime $distance $xrange");
 
 # print "type=$sport_info{$type} ($type) calories=$calories HRM=$hrmfile distance=$distance time=$time\n";
 my @hrdata = grep {/\[HRData\]/..1} @data;    shift @hrdata;
 my @params = grep {/\[Params\]/../^$/} @data; shift @params;
 
 my %paramlist;
-foreach my $param (@params) {
+foreach my $param (@{$hrmchunks->{'Params'}}) {
     chomp $param;
     $param =~ s/\r//g;
     my ($key, $value) = split(/=/, $param, 2);
     $paramlist{$key} = $value;
 }
+
+if ($paramlist{'SMode'}) {
+    my (@junk) = split(//, $paramlist{'SMode'});
+    if ($junk[0] == 1) {
+        print "#set plot_speed = 1\n";
+        print "#set plot_distance = 1\n";
+        print "#set plot_int_pace = 1\n";
+    }
+    if ($junk[2] == 1) {
+        print "#set plot_altitude = 1\n";
+    }
+}
+print "#set plot_hrzones = 1\n";
+if ($hrmchunks->{'IntTimes'}) {
+    print "#set plot_intervals = 1\n";
+    print "#set plot_notches = 1\n";
+}
+output($DATA, "DATA $escaped $exetime $distance $xrange");
 
 my ($distance, $time, $total, $prev, $prevtime, $prevzonetime) = (0)x6;
 my ($prev_hrzone, @zones, $hrzone);
@@ -147,15 +165,16 @@ if ($total > 0 ) {
 }
 # print join(' ', '02HRZONE', @hrzones, 0), "\n";
 
+my @notches=();
 if (defined($hrmchunks->{'IntTimes'})) {
     my @intColours = qw(skyblue magenta yelloworange limegreen);
     my $prevint = 0;
     my @lines = @{$hrmchunks->{'IntTimes'}};
     while (my @int = splice(@lines, 0, 5)) {
         my ($time, $hrInst, $hrMin, $hrAvg, $hrMax) = split(' ', $int[0]);
-        my ($x, $tRec, $hrDrop, $spInst, $alInc, $alInst) = split(' ', $int[1]);
+        my ($flags, $tRec, $hrDrop, $spInst, $cadInst, $alInst) = split(' ', $int[1]);
         my (@junk) = split(' ', $int[2]);
-        my ($timer, $lapMetres, $x, $temp, $flags, $x) = split(' ', $int[3]);
+        my ($lapType, $lapMetres, $powerInst, $temp, $phase) = split(' ', $int[3]);
         my (@junk) = split(' ', $int[4]);
 
         my ($h,$m,$s) = split(/:/, $time);
@@ -164,17 +183,21 @@ if (defined($hrmchunks->{'IntTimes'})) {
             my $pace =1000/((($spInst/10)*1000)/3600);
             my $nt = sprintf("%d:%02d", int($pace/60), $pace%60);
             output($INTMARK, join(' ', 'INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt));
-            if ($timer == 1) {
-                push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$timer]];
-                push @intervals, ['INTERVAL', 15, $seconds, $seconds+$tRec, 'yellowgreen'];
-                $prevint = $seconds+$tRec;
-            } else {
-                push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$timer]];
-                $prevint = $seconds;
-            }
         }
+        my $oldint = $prevint;
+        push @notches, ['NOTCH', 50, $prevint, $prevint+5, 'black'];
+        if ($lapType == 1) {
+            push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$lapType]];
+            push @intervals, ['INTERVAL', 15, $seconds, $seconds+$tRec, 'yellowgreen'];
+            $prevint = $seconds+$tRec;
+        } else {
+            push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$lapType]];
+            $prevint = $seconds;
+        }
+        push @notches, ['NOTCH', 50, $oldint+5, $prevint, 'white'];
     }
     print_ssv_lines($INTERVAL, \@intervals);
+    print_ssv_lines($NOTCHES, \@notches);
 }
 sub print_ssv_lines {
     my $level = shift;
