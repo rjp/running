@@ -1,6 +1,5 @@
 #proc page
 landscape: yes
-outfilename: @prefix-hrs.svgz
 
 #proc getdata
 command: perl parseppd.pl @date @exe
@@ -28,9 +27,9 @@ action: breaks
 #set xup = $arith(@seconds+60-@xmod)
 #set xnear = $arith(60*@xup/60)
 #set xrange = $formatfloat(@xnear, "%.0f")
-#write stdout
-type=@type time=@nicetime distance=@dkm xrange=0 @xrange (@xnear)
-#endwrite
+// #write stdout
+// type=@type time=@nicetime distance=@dkm xrange=0 @xrange (@xnear)
+// #endwrite
 
 #proc areadef
 rectangle: 1 4.5 10 7
@@ -183,7 +182,20 @@ thinbarline: width=0.5 color=lavender style=2
 labelfield: 3
 labelpos: min+0.2
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
+
+#write stdout
+full
+#endwrite
+#else
+#write stdout
+top
+#endwrite
+
 #endif /// plot_altitude km marks
+#else
+#write stdout
+top
+#endwrite
 #endif /// plot_speed
 
 #if @plot_altitude > 0
@@ -198,9 +210,9 @@ fields: 1
 action: breaks
 #endproc
 
-#write stdout
-248 @BREAKFIELD1 INTMARK
-#endwrite
+// #write stdout
+// 248 @BREAKFIELD1 INTMARK
+// #endwrite
 
 #proc areadef
 #clone area
@@ -253,7 +265,8 @@ ptlabelfield: 6
 ptlabeldetails: size=6 adjust=0,0.07
 pointsymbol: shape=square style=outline fillcolor=powderblue2 radius=0.03
 legendlabel: pace (min/km)
-#endif
+
+#endif // plot_int_pace 
 
 #proc yaxis
 stubhide: yes
@@ -276,9 +289,9 @@ format: singleline
 #endif
 
 #if @plot_hrzones > 0
-#write stdout
-plotting hrzones
-#endwrite
+// #write stdout
+// plotting hrzones
+// #endwrite
 
 ///  
 /// heart rate zones
@@ -290,9 +303,9 @@ original: yes
 fields: 1
 action: breaks
 #endproc
-#write stdout
-188 @BREAKFIELD1 HRZONE
-#endwrite
+// #write stdout
+// 188 @BREAKFIELD1 HRZONE
+// #endwrite
 
 #proc areadef
 rectangle: 1 3.9 10 4.1
@@ -326,9 +339,9 @@ fields: 1
 action: breaks
 #endproc
 
-#write stdout
-216 @BREAKFIELD1 INTERVAL
-#endwrite
+// #write stdout
+// 216 @BREAKFIELD1 INTERVAL
+// #endwrite
 
 #proc areadef
 rectangle: 1 4.1 10 4.3
@@ -372,14 +385,6 @@ action: breaks
     #set row = $arith(@row+1)
 #endloop
 
-// #proc bars
-// horizontalbars: yes
-// outline: no
-// locfield: 2
-// barwidth: 0.05
-// exactcolorfield: 5
-// segmentfields: 3 4 
-#endif
 
 #proc annotate
 location: min-0.1 4.08
@@ -388,11 +393,15 @@ text: INT
 
 #include hrzones.plt
 
+
 #proc legend
 location: min+0.2 3.9
 format: singleline
 
-#proc annotate
-location: 10 1
-textdetails: color=white size=2
-text: hidden
+#endif // plot_notches > 0
+#endif // plot_intervals > 0
+
+// #proc annotate
+// location: 10 1
+// textdetails: color=red size=2
+// text: hidden

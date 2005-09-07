@@ -1,4 +1,4 @@
-#
+#delete
 # 00DATA             information about the exercise
 # 01DISTANCE         500m markers and times
 # 02HRZONE           heart rate zoning
@@ -15,6 +15,7 @@ my $DATA = 0,
    $HRSPEED = 1,
    $NOTCHES = 10;
 
+my %settings;
 if ($^O eq "MSWin32") {
     our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
 } elsif ($^O eq 'cygwin') {
@@ -103,18 +104,18 @@ foreach my $param (@{$hrmchunks->{'Params'}}) {
 if ($paramlist{'SMode'}) {
     my (@junk) = split(//, $paramlist{'SMode'});
     if ($junk[0] == 1) {
-        print "#set plot_speed = 1\n";
-        print "#set plot_distance = 1\n";
-        print "#set plot_int_pace = 1\n";
+        $settings{'plot_speed'} = 1;
+        $settings{'plot_distance'} = 1;
+        $settings{'plot_int_pace'} = 1;
     }
     if ($junk[2] == 1) {
-        print "#set plot_altitude = 1\n";
+        $settings{'plot_altitude'} = 1;
     }
 }
-print "#set plot_hrzones = 1\n";
+$settings{'plot_hrzones'} = 1;
 if ($hrmchunks->{'IntTimes'}) {
-    print "#set plot_intervals = 1\n";
-    print "#set plot_notches = 1\n";
+    $settings{'plot_intervals'} = 1;
+    $settings{'plot_notches'} = 1;
 }
 output($DATA, "DATA $escaped $exetime $distance $xrange");
 
@@ -184,7 +185,7 @@ if (defined($hrmchunks->{'IntTimes'})) {
         if ($spInst > 0) { 
             my $pace =1000/((($spInst/10)*1000)/3600);
             my $nt = sprintf("%d:%02d", int($pace/60), $pace%60);
-            output($INTMARK, join(' ', 'INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt));
+            push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt];
         }
         my $oldint = $prevint;
         push @notches, ['NOTCH', 50, $prevint, $prevint+5, 'black'];
@@ -198,8 +199,16 @@ if (defined($hrmchunks->{'IntTimes'})) {
         }
         push @notches, ['NOTCH', 50, $oldint+5, $prevint, 'white'];
     }
-    print_ssv_lines($INTERVAL, \@intervals);
-    print_ssv_lines($NOTCHES, \@notches);
+    if (scalar @intmarks > 1) {
+        print_ssv_lines($INTMARK, \@intmarks);
+        print_ssv_lines($INTERVAL, \@intervals);
+        print_ssv_lines($NOTCHES, \@notches);
+    } else {
+        delete $settings{'plot_intervals'};
+        delete $settings{'plot_int_pace'};
+        delete $settings{'plot_altitude'};
+        delete $settings{'plot_notches'};
+    }
 }
 sub print_ssv_lines {
     my $level = shift;
@@ -213,6 +222,9 @@ foreach my $i (@zones) {
     output($HRZONE, join(' ', @$i));
 }
 
+foreach my $i (keys %settings) {
+    print "#set $i = $settings{$i}\n";
+}
 output_all();
 
 sub calc_zone {
