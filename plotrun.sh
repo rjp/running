@@ -3,7 +3,10 @@ exe=$1; shift
 shortdate=${date:2}
 longexe=`printf %02d $exe`
 prefix="${date}_${exe}"
-graph_style=`ploticus -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix"`
+case `uname -o` in
+    Linux) graph_style=`ploticus -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix"`;;
+    Cygwin) graph_style=`~/plpl/ploticus -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix"`;;
+esac
 
 echo "plotting a $graph_style graph"
 
@@ -16,8 +19,10 @@ case $graph_style in
           geometry='-geometry 512x192';;
 esac
 
-rsvg $size svgz.svgz ${shortdate}${longexe}.png
+case `uname -o` in
+    Linux) rsvg $size svgz.svgz ${shortdate}${longexe}.png;;
+    Cygwin) ~/svg2png $size svgz.svg ${shortdate}${longexe}.png;;
+esac
 convert $crop $geometry ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
 ls -l ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
 mv ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png ~/public_html/rundata/graphs/rundata/
- 
