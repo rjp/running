@@ -17,6 +17,8 @@ my $DATA = 0,
 
 if ($^O eq "MSWin32") {
     our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
+} elsif ($^O eq 'cygwin') {
+    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
 } else {
     our $dir = "/home/rjp/data/rjp_polar/rob partington";
 }
