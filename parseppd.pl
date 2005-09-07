@@ -146,7 +146,8 @@ foreach my $line (@hrdata) {
             my $timeoff = $time + $ratio*$paramlist{'Interval'};
 #            printf "total: $total  prev: $prev  offset: $offset  ratio: $ratio  timeoff: $timeoff\n";
 #            printf "estimate %d crossing at %.1fs seconds\n", 500*int($total/500), $timeoff;
-            push @distances, [$timeoff, sprintf("%.1fkm\\n%.0fs", (500*int($total/500))/1000, $time-$prevtime), $prev];
+            my $pace = 2*($time-$prevtime);
+            push @distances, [$timeoff, sprintf("%.1fkm\\n%.0fs\\n%d:%02d", (500*int($total/500))/1000, $time-$prevtime, int($pace/60), $pace%60), $prev];
             $prevtime = $timeoff;
         }
         $prev = $total;
@@ -158,13 +159,16 @@ if ($prevzonetime == 0) { $prev_hrzone = $hrzone; }
 push @zones, ['HRZONE', 5, $prevzonetime, $time, $prev_hrzone];
 
 my $lastgap = $exetime - $prevtime;
-my $fd = sprintf("%.1fkm\\n%.0fs", $total/1000, $lastgap);
 
 foreach my $i (@distances) {
     output($DISTANCE, join(' ', 'DISTANCE', @$i, '100',$prev));
 }
 if ($total > 0 ) {
-    output($DISTANCE, join(' ', 'DISTANCE', $exetime, '.', $total/1000,'100',100));
+    my $marker = '.';
+    my $pace = 2*($exetime-$distances[-1]->[0]);
+    my $fd = sprintf("%.1fkm\\n%.0fs\\n%d:%02d", $total/1000, $lastgap, int($pace/60), $pace%60);
+    if ($total - $distances[-1]->[2] > 250) { $marker = $fd; }
+    output($DISTANCE, join(' ', 'DISTANCE', $exetime, $marker, $total/1000,'100',100));
 }
 # print join(' ', '02HRZONE', @hrzones, 0), "\n";
 

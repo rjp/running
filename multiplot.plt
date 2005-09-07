@@ -14,9 +14,10 @@ action: breaks
 #set type = @BREAKFIELD2
 #set seconds = @BREAKFIELD3
 #set distance = @BREAKFIELD4
-#set tmint = $arith(@seconds/60)
-#set tmin = $formatfloat(@tmint, "%.0f")
 #set tsec = $arith(@seconds%60)
+#set cmin = $arith(@seconds-@tsec)
+#set tmint = $arith(@cmin/60)
+#set tmin = $formatfloat(@tmint, "%.0f")
 #set fsec = $formatfloat(@tsec, "%02.0f")
 #set t0 = $strcat(@tmin, ":")
 #set nicetime = $strcat(@t0, @fsec)
@@ -27,9 +28,9 @@ action: breaks
 #set xup = $arith(@seconds+60-@xmod)
 #set xnear = $arith(60*@xup/60)
 #set xrange = $formatfloat(@xnear, "%.0f")
-// #write stdout
-// type=@type time=@nicetime distance=@dkm xrange=0 @xrange (@xnear)
-// #endwrite
+#write stderr
+type=@type time=@nicetime distance=@dkm xrange=0 @xrange (@xnear) seconds=@seconds tmin=@tmin
+#endwrite
 
 #proc areadef
 rectangle: 1 4.5 10 7
@@ -165,7 +166,7 @@ locfield: 2
 lenfield: 5
 thinbarline: width=0.5 color=lavender style=2
 labelfield: 3
-labelpos: min+0.2
+labelpos: min+0.3
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
 
 #if @plot_altitude > 0
@@ -180,7 +181,7 @@ locfield: 2
 lenfield: 5
 thinbarline: width=0.5 color=lavender style=2
 labelfield: 3
-labelpos: min+0.2
+labelpos: min+0.3
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
 
 #write stdout
