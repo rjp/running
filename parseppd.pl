@@ -67,7 +67,7 @@ while (@lines) {
 my $array = $chunks->{"ExerciseInfo$exe"};
 my ($x, $x, $x, $distance, $x, $exetime) = split(' ', $array->[1]);
 my ($type, $x, $x, $x, $x, $calories) = split(' ', $array->[2]);
-my @hrzones = split(' ', $array->[5]);
+my @time_hrzones = split(' ', $array->[5]);
 my ($avBpm, $mxBpm, $avSpd, $mxSpd, @junk) = split(' ', $array->[9]);
 my ($avAlt, $mxAlt, @junk) = split(' ', $array->[9]);
 my $hrmfile = $array->[-1];
@@ -78,6 +78,8 @@ open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
 my @data = map {chomp;s/\r//g;$_} <FILE>;
 close FILE;
 my $hrmchunks = parse_chunks(\@data);
+
+setup_hrzones();
 
 my $escaped = $sport_info{$type};
 if ($hrmchunks->{'Note'}) { 
@@ -231,14 +233,41 @@ foreach my $i (keys %settings) {
 }
 output_all();
 
-sub calc_zone {
-    my $hr = shift;
-    return 'red' if ($hr >= 162); # HARDCODED EVIL
-    return 'yelloworange' if ($hr >= 144); 
-    return 'yellowgreen' if ($hr >= 126); 
-    return 'lavender' if ($hr >= 108); 
-    return 'skyblue' if ($hr >= 90);
-    return 'gray(.6)';
+sub setup_hrzones {
+    my @tmp = @{$hrmchunks->{'HRZones'}};
+    my $first = shift @tmp;
+    my $calcsub = "sub calc_zone { my \$hr = shift; return 'red' if \$hr >= $first;";
+    my @zones = splice(@tmp, 0, 5);
+    my @vars = ();
+    my @colours = qw(redorange yellowgreen skyblue lavender dullyellow gray(.7));
+    $settings{'hrzone_col'} = join(',', @colours);
+    my $j = 0;
+    foreach my $i (@zones) {
+        push @vars, [$i, $time_hrzones[$j]];
+        $j++;
+        my $colour = shift @colours;
+        $calcsub .= <<COMPARE;
+return "$colour" if \$hr >= $i;
+COMPARE
+    }
+    $calcsub .= "return 'gray(0.7)';\n}";
+    print STDERR $calcsub;
+    eval $calcsub;
+    print "$@";
+    $settings{'hrzone_times'} = join(',', map {$_->[1]} @vars);
+    my $first = shift @vars;
+    my $fpc = sprintf("%.1f%%", 100*($first->[1])/$exetime);
+    push @bpm, "$first->[0]+";
+    push @pcb, $fpc;
+    foreach my $i (@vars) {
+        $first->[0]--;
+        my $fpc = sprintf("%.1f%%", 100*($i->[1])/$exetime);
+        push @bpm, "$i->[0]-$first->[0]";
+        push @pcb, $fpc;
+        $first = $i;
+    }
+    $settings{'hrzone_percent'} = join(',', @pcb);
+    $settings{'hrzone_bpm'} = join(',', @bpm);
 }
 
 sub output {
