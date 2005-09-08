@@ -328,6 +328,23 @@ textdetails: size=8 align=R
 text: HRZ
 #endif
 
+#for hrz in 1,2,3,4,5
+#set zbpm = $nmember(@hrz, @hrzone_bpm)
+#set zpct = $nmember(@hrz, @hrzone_percent)
+#set zcol = $nmember(@hrz, @hrzone_col)
+#set znice = $strcat(@zbpm, "bpm")
+
+#proc legendentry
+sampletype: symbol
+label: @znice (@zpct)
+details: shape=square fillcolor=@zcol
+#endloop
+
+#proc legend
+location: min+0.2 3.9
+format: singleline
+
+
 #if @plot_intervals > 0
 /// 
 /// intervals
@@ -392,12 +409,7 @@ location: min-0.1 4.08
 textdetails: size=8 align=R
 text: INT
 
-#include hrzones.plt
 
-
-#proc legend
-location: min+0.2 3.9
-format: singleline
 
 #endif // plot_notches > 0
 #endif // plot_intervals > 0
