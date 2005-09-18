@@ -4,8 +4,8 @@ shortdate=${date:2}
 longexe=`printf %02d $exe`
 prefix="${date}_${exe}"
 case `uname -o` in
-    *Linux) graph_style=`ploticus -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix" yaml="$1"`;;
-    Cygwin) graph_style=`~/plpl/ploticus -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix" yaml="$1"`;;
+    *Linux) graph_style=`ploticus -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix"`;;
+    Cygwin) graph_style=`~/plpl/ploticus -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix"`;;
 esac
 
 echo "plotting a $graph_style graph"
@@ -25,5 +25,4 @@ case `uname -o` in
 esac
 convert $geometry $crop ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
 ls -l ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
-cp ${shortdate}${longexe}.yaml /var/www/data/rjp/blogs/running/entries/test_${shortdate}${longexe}.yaml
-mv ${shortdate}${longexe}.yaml ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png ~/public_html/rundata/graphs/rundata/
+mv ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png ~/public_html/rundata/graphs/rundata/

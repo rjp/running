@@ -2,6 +2,5 @@
 title: "[% run.title %], [% run.distance %], [% run.time %]"
 author: rjp
 created: [% run.date %]
-# 2005-09-10 17:30:00 +01:00
 content: >-
   !/rundata/graphs/rundata/tn_[% run.dmye %].png!:/rundata/graphs/rundata/[% run.dmye %].png

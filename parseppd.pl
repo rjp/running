@@ -6,6 +6,7 @@
 # 04INTERVAL         interval zoning 
 # 05HRSPEED          heart rate and speed
 
+use POSIX qw(strftime);
 use Data::Dumper;
 my $DATA = 0, 
    $DISTANCE = 2, 
@@ -13,7 +14,9 @@ my $DATA = 0,
    $INTMARK = 3, 
    $INTERVAL = 5, 
    $HRSPEED = 1,
-   $NOTCHES = 10;
+   $NOTCHES = 10,
+   $ALTITUDE = 20;
+
 
 my %settings;
 if ($^O eq "MSWin32") {
@@ -25,10 +28,12 @@ if ($^O eq "MSWin32") {
 }
 my $date = shift;
 my $exe  = shift || 1;
-my $make_yaml = shift;
 my ($year, $month, $day) = unpack("A4A2A2", $date);
 my $ppd = "$dir/rob partington.ppd";
 my $pdd = "$dir/$year/$date.pdd";
+
+$settings{'plot_date'} = strftime('%a %b %d %Y', 0, 0, 0, $day, $month-1, $year-1900);
+
 
 sub parse_chunks {
     my (%chunks, $cursec);
@@ -113,6 +118,7 @@ if ($paramlist{'SMode'}) {
     }
     if ($junk[2] == 1) {
         $settings{'plot_altitude'} = 1;
+        $settings{'set_pa_121'} = 1;
     }
 }
 $settings{'plot_hrzones'} = 1;
@@ -120,27 +126,23 @@ if ($hrmchunks->{'IntTimes'}) {
     $settings{'plot_intervals'} = 1;
     $settings{'plot_notches'} = 1;
 }
+# altitude without speed is pointless, maybe
+if (!defined($settings{'plot_speed'})) {
+    delete $settings{'plot_altitude'};
+    $settings{'set_pa_remove_132'} = 1;
+}
 output($DATA, "DATA $escaped $exetime $distance $xrange");
 
-if ($make_yaml) {
-    eval "use Template;";
-    (my $yamlfile = $hrmfile) =~ s/\.hrm//;
-    (my $title = $hrmchunks->{'Note'}->[0] || $type) =~ s/ *$//;
-    print STDERR "MAKING A YAML into $yamlfile.yaml\n";
-    my $tt = Template->new();
-    (my $ehms = $paramlist{'StartTime'}) =~ /\.\d+$/;
-    open YAML, ">$yamlfile.yaml" or die "$!";
-    $tt->process("template.yaml", {
-        run => {
-            date => "$year-$month-$day $ehms +01:00", # HARDCODED TZ
-            distance => sprintf("%.1fkm", $distance/1000),
-            time => sprintf("%d:%02d", int($exetime/60), $exetime%60),
-            title => $title,
-            dmye => $yamlfile,
-        }
-    }, \*YAML);
-    close YAML;
-}
+# Work out ALTITUDE range so that it's in the top 1/3rd of the graph
+my $trip = $hrmchunks->{'Trip'};
+$altAvg = $trip->[3];
+$altMax = $trip->[4];
+$settings{'alt_max'} = $altMax;
+$settings{'alt_avg'} = $altAvg;
+my $altTop = 10*(int(($altMax-$altAvg)/10)+1);
+my $altTmp = ($altAvg-3*($altMax-$altAvg));
+my $altBot = 10*(int(($altTmp-$altAvg)/10)-1);
+$settings{'alt_range'} = "$altBot $altTop";
 
 my ($distance, $time, $total, $prev, $prevtime, $prevzonetime) = (0)x6;
 my ($prev_hrzone, @zones, $hrzone);
@@ -148,7 +150,17 @@ my ($prev_hrzone, @zones, $hrzone);
 foreach my $line (@hrdata) {
     chomp $line;
     $line =~ s/\r//g;
-    my ($hr, $speed, @junk) = split(/\t/, $line);
+    my ($hr, $speed, $altitude, @junk);
+    if ($settings{'plot_speed'}) {
+        ($hr, $speed, $altitude, @junk) = split(/\t/, $line);
+    } else {
+        ($hr, $altitude, @junk) = split(/\t/, $line);
+    }
+    my $alt_diff = $altitude - $altAvg;
+
+    if ($settings{'plot_altitude'}) {
+        output($ALTITUDE, "ALTITUDE $time $alt_diff");
+    }
 
     $hrzone = calc_zone($hr);
     if ($hrzone ne $prev_hrzone) {
@@ -193,9 +205,12 @@ if ($total > 0 ) {
     if ($total - $distances[-1]->[2] > 250) { $marker = $fd; }
     output($DISTANCE, join(' ', 'DISTANCE', $exetime, $marker, $total/1000,'100',100));
 }
-# print join(' ', '02HRZONE', @hrzones, 0), "\n";
 
+# TODO figure out why AUTOLAP lies
+# TODO how to distinguish between AUTOLAP and USERLAP
+# TODO what the current AUTOLAP setting is
 my @notches=();
+my $lapDistance = 0;
 if (defined($hrmchunks->{'IntTimes'})) {
     my @intColours = qw(skyblue magenta yelloworange limegreen);
     my $prevint = 0;
@@ -204,25 +219,27 @@ if (defined($hrmchunks->{'IntTimes'})) {
         my ($time, $hrInst, $hrMin, $hrAvg, $hrMax) = split(' ', $int[0]);
         my ($flags, $tRec, $hrDrop, $spInst, $cadInst, $alInst) = split(' ', $int[1]);
         my (@junk) = split(' ', $int[2]);
-        ($lapType, $lapMetres, $powerInst, $temp, $phase) = split(' ', $int[3]);
+        my ($lapType, $lapMetres, $powerInst, $temp, $phase) = split(' ', $int[3]);
         my (@junk) = split(' ', $int[4]);
+        $lapDistance = $lapDistance + $lapMetres;
+
+        # next unless ($phase & 0xFF00) == 0xFF00;
 
         my ($h,$m,$s) = split(/:/, $time);
         my $seconds = 3600*$h + 60*$m + $s;
         if ($spInst > 0) { 
             my $pace =1000/((($spInst/10)*1000)/3600);
             my $nt = sprintf("%d:%02d", int($pace/60), $pace%60);
-            if (($phase & 0xFF00) != 0xFF00) { # interval lap
-                push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt, $flags];
-            }
+            my $tt = sprintf("%d:%02d", int($seconds/60), $seconds%60);
+            push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt, $lapDistance, $tt];
         }
         my $oldint = $prevint;
         push @notches, ['NOTCH', 50, $prevint, $prevint+5, 'black'];
-        if ($lapType == 1 and ($phase & 0xFF00) != 0xFF00) {
+        if ($lapType == 1) {
             push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$lapType]];
             push @intervals, ['INTERVAL', 15, $seconds, $seconds+$tRec, 'yellowgreen'];
             $prevint = $seconds+$tRec;
-        } elsif ($lapType == 0 and ($phase & 0xFF00) != 0xFF00) {
+        } else {
             push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$lapType]];
             $prevint = $seconds;
         }
@@ -235,7 +252,6 @@ if (defined($hrmchunks->{'IntTimes'})) {
     } else {
         delete $settings{'plot_intervals'};
         delete $settings{'plot_int_pace'};
-        delete $settings{'plot_altitude'};
         delete $settings{'plot_notches'};
     }
 }
@@ -274,9 +290,10 @@ return "$colour" if \$hr >= $i;
 COMPARE
     }
     $calcsub .= "return 'gray(0.7)';\n}";
-    print STDERR $calcsub;
     eval $calcsub;
-    print "$@";
+    if ($@) {
+        die "error creating calcsub: $!";
+    }
     $settings{'hrzone_times'} = join(',', map {$_->[1]} @vars);
     my $first = shift @vars;
     my $fpc = sprintf("%.1f%%", 100*($first->[1])/$exetime);

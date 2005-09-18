@@ -2,7 +2,7 @@
 landscape: yes
 
 #proc getdata
-command: perl parseppd.pl @date @exe @yaml
+command: perl parseppd.pl @date @exe
 delim: space
 nfields: 8
 showresults: no
@@ -11,6 +11,9 @@ showresults: no
 fields: 1 2 3 4 5
 action: breaks
 #endproc
+#write stderr
+15 @BREAKFIELD1 plot all
+#endwrite
 #set type = @BREAKFIELD2
 #set seconds = @BREAKFIELD3
 #set distance = @BREAKFIELD4
@@ -42,12 +45,14 @@ xrange: 0 @xrange
 
 #proc areadef
 #clone area
-titledetails: size=9 align=c style=R
+titledetails: size=8 align=c style=R
+title2details: size=6 align=r style=R adjust=0,0.07
 #if @plot_distance > 0
 title: @type (@dkm, @nicetime)
 #else
 title: @type (@nicetime)
 #endif
+title2: @plot_date
 #endproc
 
 ///
@@ -60,6 +65,9 @@ original: yes
 fields: 1
 action: breaks
 #endproc
+#write stderr
+69 @BREAKFIELD1  hr bpm + km/h
+#endwrite
 
 #set total_distance = @distance
 
@@ -74,9 +82,16 @@ yrange: 90 190
 #proc lineplot
 xfield: 2
 yfield: 3
-linedetails: width=1 color=oceanblue
+linedetails: width=0.25 color=oceanblue
 clip: yes
 #endproc
+
+#proc curvefit
+xfield: 2
+yfield: 3
+curvetype: avg
+order: 5
+linedetails: color=oceanblue width=1
 
 #proc processdata
 action: stats
@@ -107,6 +122,8 @@ stubcull: yes
 stubreverse: yes
 stubdetails: size=6
 stubmult: 0.0166666666
+// minortics: yes
+// minorticinc: 60
 // label: minutes
 labeldetails: size=6 adjust=0,0.2
 
@@ -118,8 +135,15 @@ yrange: 0 20
 #proc lineplot
 xfield: 2
 yfield: 4
-linedetails: width=1 color=green
+linedetails: width=.25 color=green style=1
 clip: yes
+
+#proc curvefit
+xfield: 2
+yfield: 4
+curvetype: avg
+order: 5
+linedetails: color=green width=1
 
 #proc processdata
 action: stats
@@ -169,6 +193,7 @@ labelfield: 3
 labelpos: min+0.3
 labeldetails: size=6 color=lightpurple align=R adjust=-0.05
 
+// TODO change this to be plot_full instead of plot_altitude
 #if @plot_altitude > 0
 #proc areadef
 rectangle: 1 1 10 3.5
@@ -199,7 +224,9 @@ top
 #endwrite
 #endif /// plot_speed
 
-#if @plot_altitude > 0
+/// TODO should be plot_intervals or plot_laps ///
+
+#if @plot_intervals > 0
 ///
 /// interval temperature and pace
 ///
@@ -210,26 +237,9 @@ original: yes
 fields: 1
 action: breaks
 #endproc
-
-// #write stdout
-// 248 @BREAKFIELD1 INTMARK
-// #endwrite
-
-#proc areadef
-#clone area
-rectangle: 1 1 10 3.5
-yrange: 0 80
-#endproc
-
-#proc lineplot
-xfield: 2
-yfield: 3
-linedetails: width=1 color=purple
-clip: yes
-ptlabelfield: 3
-ptlabeldetails: size=6 adjust=0,0.07
-pointsymbol: shape=square style=outline fillcolor=purple linecolor=purple radius=0.03
-legendlabel: alt (m)
+#write stderr
+240 @BREAKFIELD1  plot_temperature 
+#endwrite
 
 #proc areadef
 #clone area
@@ -269,6 +279,15 @@ legendlabel: pace (min/km)
 
 #endif // plot_int_pace 
 
+#endif
+
+#if @plot_altitude > 0
+
+#proc legendentry
+sampletype: symbol
+label: +-avg.alt (m)
+details: shape=square fillcolor=purple
+
 #proc yaxis
 stubhide: yes
 tics: none
@@ -289,6 +308,7 @@ format: singleline
 
 #endif
 
+
 #if @plot_hrzones > 0
 // #write stdout
 // plotting hrzones
@@ -304,6 +324,9 @@ original: yes
 fields: 1
 action: breaks
 #endproc
+#write stderr
+348 @BREAKFIELD1 plot_hrzones=@plot_hrzones
+#endwrite
 // #write stdout
 // 188 @BREAKFIELD1 HRZONE
 // #endwrite
@@ -356,6 +379,9 @@ original: yes
 fields: 1
 action: breaks
 #endproc
+#write stderr
+403 @BREAKFIELD1 plot_intervals
+#endwrite
 
 // #write stdout
 // 216 @BREAKFIELD1 INTERVAL
@@ -384,6 +410,10 @@ fields: 1
 action: breaks
 #endproc
 
+#write stderr
+434 @BREAKFIELD1  plot_notches
+#endwrite
+
 #set row = 1
 #loop
     #set z = $dataitem(@row, 1)
@@ -409,8 +439,6 @@ location: min-0.1 4.08
 textdetails: size=8 align=R
 text: INT
 
-
-
 #endif // plot_notches > 0
 #endif // plot_intervals > 0
 
@@ -418,3 +446,38 @@ text: INT
 // location: 10 1
 // textdetails: color=red size=2
 // text: hidden
+
+#if @plot_altitude > 0
+#proc usedata
+original: yes
+
+#proc processdata
+fields: 1
+action: breaks
+#endproc
+
+#proc areadef
+#clone area
+rectangle: 1 1 10 3.5
+yrange: @alt_range
+#endproc
+
+#proc lineplot
+xfield: 2
+yfield: 3
+clip: yes
+linedetails: color=purple width=0.25
+
+#proc curvefit
+xfield: 2
+yfield: 3
+curvetype: avg
+order: 5
+clip: yes
+linedetails: color=purple width=1
+legendlabel: +- avg alt (m)
+
+#proc line
+linedetails: width=0.5 style=1 color=purple
+points: min 0(s) max 0(s)
+#endif
