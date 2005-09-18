@@ -2,7 +2,7 @@
 landscape: yes
 
 #proc getdata
-command: perl parseppd.pl @date @exe
+command: perl parseppd.pl @date @exe @yaml
 delim: space
 nfields: 8
 showresults: no

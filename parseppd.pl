@@ -25,7 +25,8 @@ if ($^O eq "MSWin32") {
 }
 my $date = shift;
 my $exe  = shift || 1;
-my $year = substr($date, 0, 4);
+my $make_yaml = shift;
+my ($year, $month, $day) = unpack("A4A2A2", $date);
 my $ppd = "$dir/rob partington.ppd";
 my $pdd = "$dir/$year/$date.pdd";
 
@@ -121,6 +122,26 @@ if ($hrmchunks->{'IntTimes'}) {
 }
 output($DATA, "DATA $escaped $exetime $distance $xrange");
 
+if ($make_yaml) {
+    eval "use Template;";
+    (my $yamlfile = $hrmfile) =~ s/\.hrm//;
+    (my $title = $hrmchunks->{'Note'}->[0] || $type) =~ s/ *$//;
+    print STDERR "MAKING A YAML into $yamlfile.yaml\n";
+    my $tt = Template->new();
+    (my $ehms = $paramlist{'StartTime'}) =~ /\.\d+$/;
+    open YAML, ">$yamlfile.yaml" or die "$!";
+    $tt->process("template.yaml", {
+        run => {
+            date => "$year-$month-$day $ehms +01:00", # HARDCODED TZ
+            distance => sprintf("%.1fkm", $distance/1000),
+            time => sprintf("%d:%02d", int($exetime/60), $exetime%60),
+            title => $title,
+            dmye => $yamlfile,
+        }
+    }, \*YAML);
+    close YAML;
+}
+
 my ($distance, $time, $total, $prev, $prevtime, $prevzonetime) = (0)x6;
 my ($prev_hrzone, @zones, $hrzone);
 
@@ -183,7 +204,7 @@ if (defined($hrmchunks->{'IntTimes'})) {
         my ($time, $hrInst, $hrMin, $hrAvg, $hrMax) = split(' ', $int[0]);
         my ($flags, $tRec, $hrDrop, $spInst, $cadInst, $alInst) = split(' ', $int[1]);
         my (@junk) = split(' ', $int[2]);
-        my ($lapType, $lapMetres, $powerInst, $temp, $phase) = split(' ', $int[3]);
+        ($lapType, $lapMetres, $powerInst, $temp, $phase) = split(' ', $int[3]);
         my (@junk) = split(' ', $int[4]);
 
         my ($h,$m,$s) = split(/:/, $time);
@@ -191,15 +212,17 @@ if (defined($hrmchunks->{'IntTimes'})) {
         if ($spInst > 0) { 
             my $pace =1000/((($spInst/10)*1000)/3600);
             my $nt = sprintf("%d:%02d", int($pace/60), $pace%60);
-            push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt];
+            if (($phase & 0xFF00) != 0xFF00) { # interval lap
+                push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt, $flags];
+            }
         }
         my $oldint = $prevint;
         push @notches, ['NOTCH', 50, $prevint, $prevint+5, 'black'];
-        if ($lapType == 1) {
+        if ($lapType == 1 and ($phase & 0xFF00) != 0xFF00) {
             push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$lapType]];
             push @intervals, ['INTERVAL', 15, $seconds, $seconds+$tRec, 'yellowgreen'];
             $prevint = $seconds+$tRec;
-        } else {
+        } elsif ($lapType == 0 and ($phase & 0xFF00) != 0xFF00) {
             push @intervals, ['INTERVAL', 15, $prevint, $seconds, $intColours[$lapType]];
             $prevint = $seconds;
         }
