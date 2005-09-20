@@ -2,7 +2,7 @@
 landscape: yes
 
 #proc getdata
-command: perl parseppd.pl @date @exe
+command: perl parseppd.pl @date @exe @yaml
 delim: space
 nfields: 8
 showresults: no
@@ -441,11 +441,6 @@ text: INT
 
 #endif // plot_notches > 0
 #endif // plot_intervals > 0
-
-// #proc annotate
-// location: 10 1
-// textdetails: color=red size=2
-// text: hidden
 
 #if @plot_altitude > 0
 #proc usedata
