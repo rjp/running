@@ -26,3 +26,4 @@ esac
 convert $geometry $crop ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
 ls -l ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
 mv ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png ~/public_html/rundata/graphs/rundata/
+rm -f svgz.svg svgz.svgz
