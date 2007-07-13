@@ -19,17 +19,22 @@ my $DATA = 0,
 
 
 my %settings;
+my $user = $ENV{'POLAR_USER'} || 'rob partington';
+
 if ($^O eq "MSWin32") {
-    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
+    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/$user";
 } elsif ($^O eq 'cygwin') {
-    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/rob partington";
+    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/$user";
 } else {
     our $dir = "/home/rjp/data/rjp_polar/rob partington";
 }
+
+$dir  = $ENV{'POLAR_DATA'} || $dir;
+
 my $date = shift;
 my $exe  = shift || 1;
 my ($year, $month, $day) = unpack("A4A2A2", $date);
-my $ppd = "$dir/rob partington.ppd";
+my $ppd = "$dir/$user.ppd";
 my $pdd = "$dir/$year/$date.pdd";
 
 $settings{'plot_date'} = strftime('%a %b %d %Y', 0, 0, 0, $day, $month-1, $year-1900);

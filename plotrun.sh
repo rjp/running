@@ -20,10 +20,10 @@ case $graph_style in
 esac
 
 case `uname -o` in
-    *Linux) rsvg $size svgz.svgz ${shortdate}${longexe}.png;;
+    *Linux) rsvg-convert $size -o ${shortdate}${longexe}.png svgz.svgz ;;
     Cygwin) ~/svg2png $size svgz.svg ${shortdate}${longexe}.png;;
 esac
 convert $geometry $crop ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
 ls -l ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png
-mv ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png ~/public_html/rundata/graphs/rundata/
+mv ${shortdate}${longexe}.png tn_${shortdate}${longexe}.png ~/public_html/rundata/graphs/rundata/ajt/
 rm -f svgz.svg svgz.svgz

@@ -366,7 +366,7 @@ details: shape=square fillcolor=@zcol
 #proc legend
 location: min+0.2 3.9
 format: singleline
-
+textdetails: size=6
 
 #if @plot_intervals > 0
 /// 
