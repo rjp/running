@@ -1,0 +1,24 @@
+#! /bin/sh
+svg=$1
+if [ $svg = '-w' ]; then
+    shift; width=$1; shift
+    svg=$1
+fi
+if [ $svg = '-h' ]; then
+    shift; height=$1; shift
+    svg=$1
+fi
+png=$2
+
+echo "width=$width height=$height svg=[$svg] png=[$png]"
+
+cp -f $svg ~/plpl/batik-1.5.1/in.svg
+(
+cd ~/plpl/batik-1.5.1;
+java -jar batik-rasterizer.jar -w $width -h $height -d out.png in.svg
+#java -jar batik-rasterizer.jar -w 512 -h 192 -d sm-out.png in.svg
+rm -f in.svg
+)
+mv -f ~/plpl/batik-1.5.1/out.png $png
+#mv -f ~/plpl/batik-1.5.1/sm-out.png tn_$png
+#chmod 644 $png tn_$png
