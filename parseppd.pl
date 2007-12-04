@@ -136,7 +136,6 @@ if (!defined($settings{'plot_speed'})) {
     delete $settings{'plot_altitude'};
     $settings{'set_pa_remove_132'} = 1;
 }
-output($DATA, "DATA $escaped $exetime $distance $xrange");
 
 # Work out ALTITUDE range so that it's in the top 1/3rd of the graph
 my $trip = $hrmchunks->{'Trip'};
@@ -150,14 +149,27 @@ my $altBot = 10*(int(($altTmp-$altAvg)/10)-1);
 $settings{'alt_range'} = "$altBot $altTop";
 
 $settings{'maxspeed'} = 20;
+$settings{'yinc'} = 2;
 if ($mxSpd/10 > 20) {
     $settings{'maxspeed'} = 50;
+    $settings{'yinc'} = 5;
 }
 
 $settings{'xinc'} = 60;
-if ($xrange > 30) {
+if ($xrange > 1800) {
     $settings{'xinc'} = 300;
 }
+
+my $newxrange = $settings{'xinc'} * (int($xrange/$settings{'xinc'})+1);
+print STDERR "CHECK: $xrange -> $newxrange\n";
+$settings{'newxrange'} = $newxrange;
+my @stubs = ();
+for($i=0;$i<$xrange;$i+=$settings{'xinc'}) {
+    push @stubs, sprintf "%d %d", $i, $i/60;
+}
+$settings{'stublist'} = join('\n', @stubs);
+
+output($DATA, "DATA $escaped $exetime $distance $xrange");
 
 my ($distance, $time, $total, $prev, $prevtime, $prevzonetime) = (0)x6;
 my ($prev_hrzone, @zones, $hrzone);

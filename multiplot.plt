@@ -122,7 +122,8 @@ label: hr/bpm
 labeldetails: adjust=0.1,0 color=oceanblue style=B
 
 #proc xaxis
-stubs: inc @xinc
+selflocatingstubs: list @stublist
+stubrange: 0 2700
 stubcull: yes
 stubreverse: yes
 stubdetails: size=6
@@ -168,7 +169,7 @@ textdetails: color=green size=8
 text: @nice/@max km/h
 
 #proc yaxis
-stubs: inc 1
+stubs: inc @yinc
 stubcull: yes
 stubdetails: size=6 align=l adjust=0.2,0
 label: km/h
@@ -304,7 +305,7 @@ xinc is @xinc
 #endwrite
 
 #proc xaxis
-stubs: inc @xinc
+selflocatingstubs: list @stublist
 stubcull: yes
 stubreverse: yes
 stubdetails: size=6
