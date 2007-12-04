@@ -149,6 +149,16 @@ my $altTmp = ($altAvg-3*($altMax-$altAvg));
 my $altBot = 10*(int(($altTmp-$altAvg)/10)-1);
 $settings{'alt_range'} = "$altBot $altTop";
 
+$settings{'maxspeed'} = 20;
+if ($mxSpd/10 > 20) {
+    $settings{'maxspeed'} = 50;
+}
+
+$settings{'xinc'} = 60;
+if ($xrange > 30) {
+    $settings{'xinc'} = 300;
+}
+
 my ($distance, $time, $total, $prev, $prevtime, $prevzonetime) = (0)x6;
 my ($prev_hrzone, @zones, $hrzone);
 
@@ -176,12 +186,16 @@ foreach my $line (@hrdata) {
         $prevzonetime = $time;
     }
 
+    my $plotgap = 500;
+    if ($xrange > 1800) {
+        $plotgap = 1000;
+    }
     $speed = $speed / 10;
     my $distance = (1000*$speed)*$paramlist{'Interval'}/3600;
     if (defined($speed)) { 
         $total = $total + $distance;
-        if (int($total/500) != int($prev/500)) {
-            my $offset = (500*int($total/500))-$prev;
+        if (int($total/$plotgap) != int($prev/$plotgap)) {
+            my $offset = ($plotgap*int($total/$plotgap))-$prev;
             my $ratio = $offset / $distance;
             my $timeoff = $time + $ratio*$paramlist{'Interval'};
 #            printf "total: $total  prev: $prev  offset: $offset  ratio: $ratio  timeoff: $timeoff\n";
@@ -236,7 +250,14 @@ if (defined($hrmchunks->{'IntTimes'})) {
             my $pace =1000/((($spInst/10)*1000)/3600);
             my $nt = sprintf("%d:%02d", int($pace/60), $pace%60);
             my $tt = sprintf("%d:%02d", int($seconds/60), $seconds%60);
-            push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt, $lapDistance, $tt];
+            my $offset = (($lapDistance + 25) % 1000);
+            if ($xrange > 1800) {
+               if ($offset < 50) {
+                    push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt, $lapDistance, $tt, $offset, $xrange];
+               }
+            } else {
+                push @intmarks, ['INTMARK', $seconds, $alInst, $temp/10, 750-$pace, $nt, $lapDistance, $tt, $offset, $xrange];
+            }
         }
         my $oldint = $prevint;
         push @notches, ['NOTCH', 50, $prevint, $prevint+5, 'black'];

@@ -1,11 +1,15 @@
 #proc page
 landscape: yes
+textsize: 10
 
 #proc getdata
 command: perl parseppd.pl @date @exe @yaml
 delim: space
 nfields: 8
 showresults: no
+#endproc
+
+#setifnotgiven maxspeed = 20
 
 #proc processdata
 fields: 1 2 3 4 5
@@ -92,6 +96,7 @@ yfield: 3
 curvetype: avg
 order: 5
 linedetails: color=oceanblue width=1
+clip: yes
 
 #proc processdata
 action: stats
@@ -117,7 +122,7 @@ label: hr/bpm
 labeldetails: adjust=0.1,0 color=oceanblue style=B
 
 #proc xaxis
-stubs: inc 60
+stubs: inc @xinc
 stubcull: yes
 stubreverse: yes
 stubdetails: size=6
@@ -130,7 +135,7 @@ labeldetails: size=6 adjust=0,0.2
 #if @plot_speed > 0
 #proc areadef
 #clone area
-yrange: 0 20
+yrange: 0 @maxspeed
 
 #proc lineplot
 xfield: 2
@@ -144,6 +149,7 @@ yfield: 4
 curvetype: avg
 order: 5
 linedetails: color=green width=1
+clip: yes
 
 #proc processdata
 action: stats
@@ -293,8 +299,12 @@ stubhide: yes
 tics: none
 stubcull: yes
 
+#write stdout
+xinc is @xinc
+#endwrite
+
 #proc xaxis
-stubs: inc 60
+stubs: inc @xinc
 stubcull: yes
 stubreverse: yes
 stubdetails: size=6

@@ -32,6 +32,8 @@ case $graph_style in
           geometry='-geometry 512x192';;
 esac
 
+exit
+
 case `uname -o` in
     *Linux) rsvg-convert $size -o ${shortdate}${longexe}.png svgz.svgz ;;
     Cygwin) ./svg2png $size svgz.svg ${shortdate}${longexe}.png;;
