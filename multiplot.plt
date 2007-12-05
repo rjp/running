@@ -5,7 +5,7 @@ landscape: yes
 textsize: 10
 
 #proc getdata
-command: perl parseppd.pl @date @exe @yaml
+file: @tmpfile
 delim: space
 nfields: 8
 showresults: no
@@ -302,10 +302,6 @@ details: shape=square fillcolor=purple
 stubhide: yes
 tics: none
 stubcull: yes
-
-#write stdout
-xinc is @xinc
-#endwrite
 
 #proc xaxis
 selflocatingstubs: list @stublist

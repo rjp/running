@@ -21,24 +21,22 @@ my $DATA = 0,
 my %settings;
 my $user = $ENV{'POLAR_USER'} || 'rob partington';
 
-if ($^O eq "MSWin32") {
-    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/$user";
-} elsif ($^O eq 'cygwin') {
-    our $dir = "/cygdrive/c/Program Files/Polar/Polar Precision Performance/$user";
-} else {
-    our $dir = "/home/rjp/data/rjp_polar/rob partington";
-}
+my $dirlist = $ENV{'POLAR_DATA'} || '';
+my @dirs = split(/:/, $dirlist);
 
-$dir  = $ENV{'POLAR_DATA'} || $dir;
+if ($^O eq "MSWin32") {
+    push @dirs, "/cygdrive/c/Program Files/Polar/Polar Precision Performance/$user";
+} elsif ($^O eq 'cygwin') {
+    push @dirs, "/cygdrive/c/Program Files/Polar/Polar Precision Performance/$user";
+} else {
+    push @dirs, "/home/rjp/data/rjp_polar/rob partington";
+}
 
 my $date = shift;
 my $exe  = shift || 1;
 my ($year, $month, $day) = unpack("A4A2A2", $date);
-my $ppd = "$dir/$user.ppd";
-my $pdd = "$dir/$year/$date.pdd";
 
 $settings{'plot_date'} = strftime('%a %b %d %Y', 0, 0, 0, $day, $month-1, $year-1900);
-
 
 sub parse_chunks {
     my (%chunks, $cursec);
@@ -52,10 +50,26 @@ sub parse_chunks {
     }
     return \%chunks;
 }
-open FILE, "$ppd" or die "can't open $ppd: $!\n";
-my @person_file = map {chomp;s/\r//g;$_} <FILE>;
-close FILE;
+our $FILE = undef;
+foreach my $possible_dir (@dirs) {
+    my $ppd = "$possible_dir/$user.ppd";
+    if (open $FILE, "$ppd") {
+        our $found_dir = $possible_dir;
+        our $found_ppd = $ppd;
+        break;
+    }
+}
+if (not defined $FILE) {
+    die "Can't find any usable pdd in: ".join(':',@dirs);
+}
+
+push @scp, $found_ppd;
+
+my @person_file = map {chomp;s/\r//g;$_} <$FILE>;
+close $FILE;
 my $person = parse_chunks(\@person_file);
+my $pdd = "$found_dir/$year/$date.pdd";
+push @scp, $pdd;
 open FILE, "$pdd" or die "can't open $pdd: $!\n";
 my @day_file = map {chomp;s/\r//g;$_} <FILE>;
 close FILE;
@@ -86,9 +100,15 @@ my $hrmfile = $array->[-1];
 my $pDistance = $distance;
 my $xrange = 60*(int($exetime/60)+1);
 
-open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
+open FILE, "$found_dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
+push @scp, "$found_dir/$year/$hrmfile";
 my @data = map {chomp;s/\r//g;$_} <FILE>;
 close FILE;
+
+foreach my $i (@scp) {
+#    $i =~ s! !\\ !g;
+    print STDERR qq#put "$i"\n#;
+}
 my $hrmchunks = parse_chunks(\@data);
 
 setup_hrzones();
@@ -162,7 +182,6 @@ if ($xrange > 1800) {
 }
 
 my $newxrange = $settings{'xinc'} * (int($xrange/$settings{'xinc'})+1);
-print STDERR "CHECK: $xrange -> $newxrange\n";
 $settings{'newxrange'} = $newxrange;
 my @stubs = ();
 for($i=0;$i<$xrange;$i+=$settings{'xinc'}) {
@@ -248,7 +267,6 @@ foreach my $i (@distances) {
 if ($total > 0 ) {
     my $marker = '.';
     # TODO figure out why this is overestimating
-    print STDERR "e=$exetime d=",$distances[-1]->[0]," ppt=$prevpacetime ppd=$prevpace total=$total\n";
     my $pace = $lastgap / (($total-$prevpace)/1000);
    # ($exetime-$distances[-1]->[0]);
     my $fd = sprintf("%.1fkm\\n%.0fs\\n%d:%02d", $total/1000, $lastgap, int($pace/60), $pace%60);
