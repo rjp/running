@@ -248,7 +248,9 @@ foreach my $i (@distances) {
 if ($total > 0 ) {
     my $marker = '.';
     # TODO figure out why this is overestimating
-    my $pace = ($exetime-$distances[-1]->[0]);
+    print STDERR "e=$exetime d=",$distances[-1]->[0]," ppt=$prevpacetime ppd=$prevpace total=$total\n";
+    my $pace = $lastgap / (($total-$prevpace)/1000);
+   # ($exetime-$distances[-1]->[0]);
     my $fd = sprintf("%.1fkm\\n%.0fs\\n%d:%02d", $total/1000, $lastgap, int($pace/60), $pace%60);
     if ($total - $distances[-1]->[2] > 250) { $marker = $fd; }
     output($DISTANCE, join(' ', 'DISTANCE', $exetime, $marker, $total/1000,'100',100));
