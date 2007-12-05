@@ -83,6 +83,7 @@ my ($avBpm, $mxBpm, $avSpd, $mxSpd, @junk) = split(' ', $array->[9]);
 my ($avAlt, $mxAlt, @junk) = split(' ', $array->[9]);
 my $hrmfile = $array->[-1];
 
+my $pDistance = $distance;
 my $xrange = 60*(int($exetime/60)+1);
 
 open FILE, "$dir/$year/$hrmfile" or die "$year/$hrmfile: $!";
@@ -199,8 +200,14 @@ foreach my $line (@hrdata) {
     }
 
     my $plotgap = 500;
-    if ($xrange > 1800) {
+    if ($pDistance > 5000) {
         $plotgap = 1000;
+    }
+    if ($pDistance > 15000) { # >15km, plot as 2km gaps
+        $plotgap = 2000;
+    }
+    if ($pDistance > 30000) { # > 30km, plot as 5km gaps
+        $plotgap = 5000;
     }
     $speed = $speed / 10;
     my $distance = (1000*$speed)*$paramlist{'Interval'}/3600;
@@ -210,11 +217,20 @@ foreach my $line (@hrdata) {
             my $offset = ($plotgap*int($total/$plotgap))-$prev;
             my $ratio = $offset / $distance;
             my $timeoff = $time + $ratio*$paramlist{'Interval'};
-#            printf "total: $total  prev: $prev  offset: $offset  ratio: $ratio  timeoff: $timeoff\n";
-#            printf "estimate %d crossing at %.1fs seconds\n", 500*int($total/500), $timeoff;
-            my $pace = 2*($time-$prevtime);
-            push @distances, [$timeoff, sprintf("%.1fkm\\n%.0fs\\n%d:%02d", (500*int($total/500))/1000, $time-$prevtime, int($pace/60), $pace%60), $prev];
+
+            my $pace = ($total - $prevpace) / ($time-$prevpacetime);
+
+#            printf STDERR "total: $total  prev: $prev ($time)  offset: $offset  ratio: $ratio  timeoff: $timeoff  pace: $pace  prevdist: $prevpace  ppt: $prevpacetime\n";
+#            printf STDERR "estimate %d crossing at %.1fs seconds\n", $plotgap*int($total/$plotgap), $timeoff;
+#            print STDERR "pace should be ($total - $prevpace) = ",$total-$prevpace,"  /  ($time - $prevpacetime) = ",$time-$prevpacetime;
+#            print STDERR " == ",(($time-$prevpacetime)/(($total-$prevpace)/1000))," s/km\n";
+            
+            $pace = (($time-$prevpacetime)/(($total-$prevpace)/1000));
+
+            push @distances, [$timeoff, sprintf("%.1fkm\\n%.0fs\\n%d:%02d", ($plotgap*int($total/$plotgap))/1000, $time-$prevtime, int($pace/60), $pace%60), $prev];
             $prevtime = $timeoff;
+            $prevpace = $plotgap*int($total/$plotgap);
+            $prevpacetime = $timeoff;
         }
         $prev = $total;
     }
@@ -231,7 +247,8 @@ foreach my $i (@distances) {
 }
 if ($total > 0 ) {
     my $marker = '.';
-    my $pace = 2*($exetime-$distances[-1]->[0]);
+    # TODO figure out why this is overestimating
+    my $pace = ($exetime-$distances[-1]->[0]);
     my $fd = sprintf("%.1fkm\\n%.0fs\\n%d:%02d", $total/1000, $lastgap, int($pace/60), $pace%60);
     if ($total - $distances[-1]->[2] > 250) { $marker = $fd; }
     output($DISTANCE, join(' ', 'DISTANCE', $exetime, $marker, $total/1000,'100',100));

@@ -13,8 +13,8 @@ outputdir=$(echo "$tmpoutputdir" | sed -e "s/%c/$date/" -e "s/%l/$longexe/" -e "
 mkdir -p ${outputdir}
 
 case `uname -o` in
-    *Linux) graph_style=`ploticus -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1`;;
-    Cygwin) graph_style=`ploticus -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1`;;
+    *Linux) graph_style=`ploticus -maxrows 40000 -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1`;;
+    Cygwin) graph_style=`ploticus -maxrows 40000 -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1`;;
 esac
 
 echo "plotting a $graph_style graph"

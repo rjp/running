@@ -1,3 +1,5 @@
+#set bignumber = 20000
+
 #proc page
 landscape: yes
 textsize: 10
@@ -91,6 +93,7 @@ clip: yes
 #endproc
 
 #proc curvefit
+maxinpoints: @bignumber
 xfield: 2
 yfield: 3
 curvetype: avg
@@ -123,7 +126,6 @@ labeldetails: adjust=0.1,0 color=oceanblue style=B
 
 #proc xaxis
 selflocatingstubs: list @stublist
-stubrange: 0 2700
 stubcull: yes
 stubreverse: yes
 stubdetails: size=6
@@ -145,6 +147,7 @@ linedetails: width=.25 color=green style=1
 clip: yes
 
 #proc curvefit
+maxinpoints: @bignumber
 xfield: 2
 yfield: 4
 curvetype: avg
@@ -475,6 +478,7 @@ clip: yes
 linedetails: color=purple width=0.25
 
 #proc curvefit
+maxinpoints: @bignumber
 xfield: 2
 yfield: 3
 curvetype: avg
