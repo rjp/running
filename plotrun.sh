@@ -13,17 +13,18 @@ year=${date:0:4}
 month=${date:4:2}
 day=${date:6}
 
-tmpfile=$(mktemp)
-tmpdata=$(mktemp)
+tmpfile=$(mktemp -t PLRFILE)
+tmpdata=$(mktemp -t PLRDATA)
 
 perl parseppd.pl $date $exe $1 > $tmpfile 2> $tmpdata
 if [ $? -ne 0 ]; then
     exit
 fi
 
-case `uname -o` in
+case `uname` in
     *Linux) graph_style=`ploticus -maxrows 40000 -svgz -o svgz.svgz multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1 tmpfile=$tmpfile`;;
-    Cygwin) graph_style=`ploticus -maxrows 40000 -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1 tmpfile=$tmpfile`;;
+    *Darwin) graph_style=`pl -maxrows 90000 -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1 tmpfile=$tmpfile`;;
+    *) graph_style=`ploticus -maxrows 90000 -svg -o svgz.svg multiplot.plt date=$date exe=$exe prefix="$prefix" yaml=$1 tmpfile=$tmpfile`;;
 esac
 
 if [ -n "$POLAR_SSH_DATA" ]; then
