@@ -1,11 +1,14 @@
 # PPD.rb - parse Polar PPD/PDD/HRM files for exercise data
 # ported from the 2006 Perl version for HRM+GPX=TCX mashup
+require 'time'
 
 class Exercise
     attr_accessor :distance, :time, :type, :calories, :hrzones
     attr_accessor :hrmfile, :avbpm, :mxbpm, :avspd, :mxspd
+    attr_accessor :start_time, :heartrates
 
     def initialize(distance, time, type, calories, hrzones, hrmfile, avbpm, mxbpm, avspd, mxspd)
+        @heartrates = []
         @distance = distance
         @time = time
         @type = type
@@ -16,6 +19,20 @@ class Exercise
         @mxbpm = mxbpm
         @avspd = avspd
         @mxspd = mxspd
+        hrm_lines = File.open(hrmfile).readlines
+        hrm_data = PPD::parse_chunks(hrm_lines)
+        params = {}
+        hrm_data['Params'].each do |param|
+            k, v = param.split('=', 2)
+            params[k] = v
+        end
+        @start_time = Time.parse(params['Date'] + ' ' + params['StartTime'])
+
+        hrm_data['HRData'].each_with_index do |hrdata, i|
+            hr, spd, alt, y = hrdata.split(' ')
+            hrtime = Time.at(@start_time + i * params['Interval'].to_i)
+            @heartrates.push [hrtime, hr]
+        end
     end
 end
         
@@ -36,7 +53,6 @@ class PPD
                 output[cursec].push line.chomp
             end
         end
-p output
         return output
     end
 
@@ -75,9 +91,6 @@ p output
         hrzones = ed[5].split(' ')
         avbpm, mxbpm, avspd, mxspd, y = ed[9].split(' ')
         hrmfile = File.join(File.dirname(pdd), ed[-1])
-puts "Ex.#{exercise} was #{distance}m over #{time}s, #{@sports[type]}, cal #{calories}"
-puts "HR: #{avbpm}/#{mxbpm}, S: #{avspd}/#{mxspd}"
-        p hrmfile
         return Exercise.new(distance, time, type, calories, hrzones, hrmfile, avbpm, mxbpm, avspd, mxspd)
     end
 end
