@@ -421,11 +421,14 @@ action: breaks
 #endproc
 
 #write stderr
-434 @BREAKFIELD1  plot_notches
+434 @BREAKFIELD1  plot_notches @NRECORDS
 #endwrite
 
 #set row = 1
 #loop
+    #if @row >= @NRECORDS
+	#break
+    #endif	
     #set z = $dataitem(@row, 1)
     #if @z <> 10NOTCH
         #break
