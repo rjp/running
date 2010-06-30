@@ -56,15 +56,18 @@ foreach my $possible_dir (@dirs) {
     if (open $FILE, "$ppd") {
         our $found_dir = $possible_dir;
         our $found_ppd = $ppd;
+        close $FILE;
         break;
     }
 }
-if (not defined $FILE) {
+
+if (not defined $found_ppd) {
     die "Can't find any usable pdd in: ".join(':',@dirs);
 }
 
 push @scp, $found_ppd;
 
+open $FILE, "$found_ppd";
 my @person_file = map {chomp;s/\r//g;$_} <$FILE>;
 close $FILE;
 my $person = parse_chunks(\@person_file);
