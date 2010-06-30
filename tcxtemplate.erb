@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TrainingCenterDatabase
+  xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd"
+  xmlns:ns5="http://www.garmin.com/xmlschemas/ActivityGoals/v1"
+  xmlns:ns3="http://www.garmin.com/xmlschemas/ActivityExtension/v2"
+  xmlns:ns2="http://www.garmin.com/xmlschemas/UserProfile/v2"
+  xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns4="http://www.garmin.com/xmlschemas/ProfileExtension/v1">
+  <Activities>
+    <Activity Sport="Running">
+      <Id><%= e.start_time.utz %></Id>
+      <Lap StartTime="<%= e.start_time.utz %>">
+        <TotalTimeSeconds><%= e.time %></TotalTimeSeconds>
+        <DistanceMeters><%= e.distance %></DistanceMeters>
+        <MaximumSpeed><%= e.mxspd %></MaximumSpeed>
+        <Calories><%= e.calories %></Calories>
+        <AverageHeartRateBpm>
+          <Value><%= e.avbpm %></Value>
+        </AverageHeartRateBpm>
+        <MaximumHeartRateBpm>
+          <Value><%= e.mxbpm %></Value>
+        </MaximumHeartRateBpm>
+        <Intensity>Active</Intensity>
+        <TriggerMethod>Manual</TriggerMethod>
+        <Track>
+% output.each do |tp|
+          <Trackpoint>
+            <Time><%= tp[0].utz %></Time>
+            <Position>
+              <LatitudeDegrees><%= tp[1] %></LatitudeDegrees>
+              <LongitudeDegrees><%= tp[2] %></LongitudeDegrees>
+            </Position>
+            <HeartRateBpm>
+              <Value><%= tp[3].to_i %></Value>
+            </HeartRateBpm>
+          </Trackpoint>
+% end
+        </Track>
+      </Lap>
+      <Creator xsi:type="Device_t">
+        <Name>Garmin Forerunner 310XT</Name>
+        <UnitId>3673630033</UnitId>
+        <ProductID>1018</ProductID>
+        <Version>
+          <VersionMajor>2</VersionMajor>
+          <VersionMinor>70</VersionMinor>
+          <BuildMajor>0</BuildMajor>
+          <BuildMinor>0</BuildMinor>
+        </Version>
+      </Creator>
+    </Activity>
+  </Activities>
+  <Author xsi:type="Application_t">
+    <Name>Garmin Connect API</Name>
+    <Build>
+      <Version>
+        <VersionMajor>2</VersionMajor>
+        <VersionMinor>9</VersionMinor>
+        <BuildMajor>0</BuildMajor>
+        <BuildMinor>0</BuildMinor>
+      </Version>
+    </Build>
+    <LangID>en</LangID>
+    <PartNumber>GAR-MINCN-CT</PartNumber>
+  </Author>
+</TrainingCenterDatabase>

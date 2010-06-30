@@ -2,6 +2,12 @@
 # ported from the 2006 Perl version for HRM+GPX=TCX mashup
 require 'time'
 
+class Time
+    def utz
+        return self.utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    end
+end
+
 class Exercise
     attr_accessor :distance, :time, :type, :calories, :hrzones
     attr_accessor :hrmfile, :avbpm, :mxbpm, :avspd, :mxspd
